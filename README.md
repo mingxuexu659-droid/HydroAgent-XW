@@ -1,3 +1,58 @@
+# HydroAgent-XW: Xinwu Water Management Multi-Source Data Agent
+
+HydroAgent-XW is an agent-based water management analysis project for Xinwu District, Wuxi. It is adapted from AutoGIS and extended toward a domain-specific HydroAgent system that can work with local water-environment reports, real-time station data, GIS assets, pipe network materials, and field photos.
+
+## Current MVP
+
+The current version focuses on a safe local MVP without uploading private data.
+
+Implemented capabilities:
+
+- Parse local water-environment reports from DOCX into structured JSONL.
+- Parse local real-time water data from XLSX into CSV files.
+- Add a HydroAgent query API: `POST /api/hydro/query`.
+- Route user questions into report retrieval or time-series/data-dictionary analysis.
+- Identify data tables from the real-time data dictionary.
+- Explain table usage, field meanings, and possible water-management analysis directions.
+- Return `answer`, `sources`, and `debug` fields for explainability.
+
+## Data Privacy
+
+The real Xinwu District documents, spreadsheets, CAD files, PDFs, photos, and generated processed files are private and are not committed to this repository.
+
+Only directory documentation is committed:
+
+```text
+data_raw/README.md
+data_processed/README.md
+```
+
+Private local files should stay under:
+
+```text
+data_raw/
+data_processed/
+```
+
+These paths are excluded by `.gitignore`.
+
+## HydroAgent-XW Roadmap
+
+Planned upgrades:
+
+- Document RAG with vector retrieval.
+- Station/device time-series statistics.
+- Water-level and device-status anomaly detection.
+- GIS analysis for pump gates, rivers, pipe networks, and nearby assets.
+- LangGraph-based multi-agent orchestration.
+- Evaluation benchmark for router accuracy, retrieval quality, tool correctness, and task success rate.
+
+## Based On
+
+This project is adapted from [AutoGIS](https://github.com/THU-ESIS/AutoGIS), with additional HydroAgent-XW modules for water-management data ingestion, query routing, and domain-specific analysis.
+
+---
+
 # AutoGIS
 
 [ English | [中文](README_zh.md) ]
