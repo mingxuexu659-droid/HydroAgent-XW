@@ -1,0 +1,2 @@
+# Store large documentation demos as Git LFS objects rather than normal Git blobs.
+docs/assets/videos/*.mp4 filter=lfs diff=lfs merge=lfs -text

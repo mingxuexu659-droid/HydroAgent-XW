@@ -1,0 +1,83 @@
+# Copy this file to config.yaml and provide values for your own environment.
+# config.yaml is intentionally ignored by Git because it can contain credentials.
+
+llm:
+  api_key: ""
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  model_name: "qwen-max"
+  temperature: 0
+  max_tokens: 15000
+  timeout: 120
+
+# Leave these disabled to reuse the general LLM configuration. Enable and fill
+# them only when code generation or repair uses a distinct model endpoint.
+llm_code_generator:
+  enabled: false
+  api_key: ""
+  base_url: ""
+  model_name: ""
+  temperature: 0
+  max_tokens: 15000
+  timeout: 180
+
+llm_code_optimizer:
+  enabled: false
+  api_key: ""
+  base_url: ""
+  model_name: ""
+  temperature: 0.2
+  max_tokens: 15000
+  timeout: 180
+
+vector_embedding:
+  # Leave blank to reuse llm.api_key when the provider supports it.
+  api_key: ""
+  api_url: "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
+  model_name: "text-embedding-v2"
+  timeout: 10
+
+workflow:
+  skip_data_download: false
+  auto_run_script: true
+  auto_optimize_on_failure: true
+  max_optimization_rounds: 3
+  use_rag_for_optimization: true
+
+qgis:
+  # Configure either a launcher script or a Python wrapper for your QGIS installation.
+  root_path: ""
+  runqgis_bat_path: ""
+  qgis_run_py_path: ""
+  algorithm_csv_path: "data/qgis_alg_detail.3.44.5.csv"
+  script_timeout: 480
+  timeout_per_tool: 20
+
+data:
+  local_data_dir: "downloaded_data"
+  data_catalog_path: "data/data_catalog.json"
+  vector_db_path: "data/vector_db.json"
+  raw_data_dirs:
+    - "downloaded_data"
+  supported_extensions:
+    vector: [".shp", ".geojson", ".gpkg", ".gdb", ".kml", ".json"]
+    raster: [".tif", ".tiff", ".img", ".jp2", ".ecw", ".nc"]
+  auto_scan_on_startup: false
+  use_llm_for_description: true
+  recursive_scan: true
+  exclude_patterns: ["__pycache__", "\\.git", "temp", "backup"]
+
+remote_sensing:
+  cloud_cover_max: 10
+  default_satellite: "sentinel-2"
+
+output:
+  script_output_dir: "output/generated_scripts"
+  result_output_dir: "output/results"
+  log_dir: "output/logs"
+  save_intermediate_results: true
+
+logging:
+  level: "INFO"
+  console_output: true
+  file_output: true
+  file_name_format: "autogis_{date}.log"
