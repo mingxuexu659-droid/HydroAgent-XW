@@ -20,6 +20,9 @@ def answer_hydro_query(query: str) -> Dict[str, Any]:
     intent = classify_intent(query)
 
     if intent == "timeseries_data":
+        if "水质" in query or "异常检测" in query or "时序分析" in query or "字段分类" in query:
+            return answer_field_categories(query)
+
         if any(field in query for field in
                ["device_value", "device_status", "create_time", "device_id", "type_name", "type_id"]):
             return answer_specific_field(query)
@@ -391,6 +394,111 @@ def answer_field_dictionary() -> Dict[str, Any]:
         "debug": {
             "field_dictionary_found": True,
             "field_count": len(fields)
+        }
+    }
+
+
+def answer_field_categories(query: str) -> Dict[str, Any]:
+    csv_files = sorted(PROCESSED_DIR.glob("*.csv"))
+    matched_files = [file_path for file_path in csv_files if "Sheet2" in file_path.name]
+
+    if not matched_files:
+        return {
+            "intent": "timeseries_data",
+            "answer": "我没有找到字段字典表，无法进行字段分类。",
+            "sources": [],
+            "debug": {"field_dictionary_found": False}
+        }
+
+    file_path = matched_files[0]
+
+    categories = {
+        "water_quality": {
+            "name": "水质分析字段",
+            "keywords": ["水质", "化学需氧量", "氨氮", "总磷", "溶解氧", "水质等级"],
+            "fields": []
+        },
+        "device_anomaly": {
+            "name": "设备异常检测字段",
+            "keywords": ["设备值", "设备状态", "设备id", "设备类型", "设备名称"],
+            "fields": []
+        },
+        "time_series": {
+            "name": "时序分析字段",
+            "keywords": ["创建时间", "更新时间", "时间"],
+            "fields": []
+        },
+        "station_info": {
+            "name": "站点/闸站信息字段",
+            "keywords": ["闸站", "站点", "位置", "名称", "坐标", "信息"],
+            "fields": []
+        }
+    }
+
+    with file_path.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            field_name = str(row.get("字段名", "")).strip()
+            comment = str(row.get("注释", "")).strip()
+            field_type = str(row.get("类型", "")).strip()
+
+            if not field_name or field_name == "字段名":
+                continue
+
+            combined_text = f"{field_name} {comment}"
+
+            for category in categories.values():
+                if any(keyword in combined_text for keyword in category["keywords"]):
+                    category["fields"].append({
+                        "字段名": field_name,
+                        "类型": field_type,
+                        "注释": comment
+                    })
+
+    if "水质" in query:
+        selected_keys = ["water_quality"]
+    elif "异常" in query or "设备" in query:
+        selected_keys = ["device_anomaly"]
+    elif "时序" in query or "时间" in query or "趋势" in query:
+        selected_keys = ["time_series"]
+    elif "站点" in query or "闸站" in query or "位置" in query:
+        selected_keys = ["station_info"]
+    else:
+        selected_keys = list(categories.keys())
+
+    lines = []
+    debug_categories = {}
+
+    for key in selected_keys:
+        category = categories[key]
+        debug_categories[key] = category["fields"]
+
+        if not category["fields"]:
+            lines.append(f"{category['name']}：暂未从字段字典中识别到。")
+            continue
+
+        field_lines = []
+        for item in category["fields"][:10]:
+            field_lines.append(f"{item['字段名']}（{item['类型']}）：{item['注释']}")
+
+        lines.append(
+            f"{category['name']}：\n"
+            + "\n".join(f"- {line}" for line in field_lines)
+        )
+
+    answer = "我根据字段名和字段注释，对新吴区实时数据字段做了语义分类：\n\n" + "\n\n".join(lines)
+
+    return {
+        "intent": "timeseries_data",
+        "answer": answer,
+        "sources": [{
+            "source": file_path.name,
+            "location": "field_categories",
+            "preview": "基于字段名和注释进行语义分类"
+        }],
+        "debug": {
+            "selected_categories": selected_keys,
+            "categories": debug_categories
         }
     }
 def answer_specific_field(query: str) -> Dict[str, Any]:
