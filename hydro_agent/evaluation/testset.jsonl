@@ -1,0 +1,8 @@
+{"id": "rag_001", "query": "新吴区水环境整治目标是什么？", "expected_intent": "document_rag", "expected_source_type": "report"}
+{"id": "rag_002", "query": "报告里提到了哪些治理措施？", "expected_intent": "document_rag", "expected_source_type": "report"}
+{"id": "rag_003", "query": "新吴区水生态环境治理相关政策有哪些？", "expected_intent": "document_rag", "expected_source_type": "report"}
+{"id": "data_001", "query": "新吴区实时数据里有哪些表？", "expected_intent": "timeseries_data", "expected_source_type": "field_dictionary"}
+{"id": "data_002", "query": "闸站设备数据表是干什么的？", "expected_intent": "timeseries_data", "expected_source_type": "field_dictionary"}
+{"id": "data_003", "query": "device_value 字段是什么意思？", "expected_intent": "timeseries_data", "expected_source_type": "field_dictionary"}
+{"id": "data_004", "query": "device_status 字段是什么意思？", "expected_intent": "timeseries_data", "expected_source_type": "field_dictionary"}
+{"id": "data_005", "query": "基于这些字段，可以做哪些水务分析？", "expected_intent": "timeseries_data", "expected_source_type": "field_dictionary"}
