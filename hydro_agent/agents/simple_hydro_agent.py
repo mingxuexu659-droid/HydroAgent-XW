@@ -38,6 +38,8 @@ def answer_hydro_query(query: str) -> Dict[str, Any]:
 
         return answer_from_csv()
 
+    return answer_from_report(query)
+
 
 def classify_intent(query: str) -> str:
     data_score = sum(1 for keyword in DATA_KEYWORDS if keyword in query)
@@ -48,20 +50,63 @@ def classify_intent(query: str) -> str:
 
 
 def answer_from_report(query: str) -> Dict[str, Any]:
-    records = load_report_records()
-    matches = rank_report_records(query, records)[:5]
+    try:
+        from hydro_agent.rag.report_retriever import retrieve_report_chunks
+
+        matches = retrieve_report_chunks(query, top_k=5)
+    except Exception as exc:
+        records = load_report_records()
+        matches = rank_report_records(query, records)[:5]
+
+        if not matches:
+            return {
+                "intent": "document_rag",
+                "answer": f"报告向量检索暂时不可用，且关键词检索也没有找到明显相关内容。错误信息：{exc}",
+                "sources": [],
+                "debug": {
+                    "retrieval": "fallback_keyword",
+                    "error": str(exc),
+                    "records_scanned": len(records)
+                }
+            }
+
+        evidence_lines = [f"{idx + 1}. {item['text']}" for idx, item in enumerate(matches[:3])]
+        return {
+            "intent": "document_rag",
+            "answer": (
+                "报告向量检索暂时不可用，已自动降级为关键词检索。相关内容如下：\n"
+                + "\n".join(evidence_lines)
+            ),
+            "sources": [
+                {
+                    "source": item["source"],
+                    "location": f"paragraph_index={item['paragraph_index']}",
+                    "preview": item["text"][:160]
+                }
+                for item in matches
+            ],
+            "debug": {
+                "retrieval": "fallback_keyword",
+                "error": str(exc),
+                "records_scanned": len(records),
+                "matches": len(matches)
+            }
+        }
 
     if not matches:
         return {
             "intent": "document_rag",
-            "answer": "我还没有在已解析的新吴区水环境整治报告中找到明显相关内容。",
+            "answer": "我还没有在新吴区水环境整治报告向量库中找到明显相关内容。",
             "sources": [],
-            "debug": {"records_scanned": len(records)}
+            "debug": {
+                "retrieval": "vector",
+                "matches": 0
+            }
         }
 
     evidence_lines = [f"{idx + 1}. {item['text']}" for idx, item in enumerate(matches[:3])]
     answer = (
-        "根据已解析的新吴区水环境整治初步报告，和问题最相关的内容如下：\n"
+        "根据新吴区水环境整治报告的向量检索结果，和问题最相关的内容如下：\n"
         + "\n".join(evidence_lines)
     )
 
@@ -76,7 +121,10 @@ def answer_from_report(query: str) -> Dict[str, Any]:
             }
             for item in matches
         ],
-        "debug": {"records_scanned": len(records), "matches": len(matches)}
+        "debug": {
+            "retrieval": "vector",
+            "matches": len(matches)
+        }
     }
 def answer_table_overview() -> Dict[str, Any]:
     csv_files = sorted(PROCESSED_DIR.glob("*.csv"))

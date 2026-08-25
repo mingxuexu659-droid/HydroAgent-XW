@@ -47,6 +47,7 @@ data_raw/*
 !data_raw/README.md
 data_processed/*
 !data_processed/README.md
+vector_store/
 *.docx
 *.xlsx
 *.xls
