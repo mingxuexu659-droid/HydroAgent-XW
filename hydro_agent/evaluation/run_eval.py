@@ -43,6 +43,9 @@ def source_type_ok(result: Dict[str, Any], expected_source_type: str) -> bool:
     if expected_source_type == "field_dictionary":
         return any("Sheet2" in item.get("source", "") or "field" in item.get("location", "") for item in sources)
 
+    if expected_source_type == "field_categories":
+        return any("field_categories" in item.get("location", "") for item in sources)
+
     return bool(sources)
 
 

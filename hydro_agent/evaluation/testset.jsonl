@@ -6,3 +6,6 @@
 {"id": "data_003", "query": "device_value 字段是什么意思？", "expected_intent": "timeseries_data", "expected_source_type": "field_dictionary"}
 {"id": "data_004", "query": "device_status 字段是什么意思？", "expected_intent": "timeseries_data", "expected_source_type": "field_dictionary"}
 {"id": "data_005", "query": "基于这些字段，可以做哪些水务分析？", "expected_intent": "timeseries_data", "expected_source_type": "field_dictionary"}
+{"id": "category_001", "query": "新吴区实时数据中有哪些字段可以用于水质分析？", "expected_intent": "timeseries_data", "expected_source_type": "field_categories"}
+{"id": "category_002", "query": "哪些字段可以用于设备异常检测？", "expected_intent": "timeseries_data", "expected_source_type": "field_categories"}
+{"id": "category_003", "query": "哪些字段可以用于时序分析？", "expected_intent": "timeseries_data", "expected_source_type": "field_categories"}
