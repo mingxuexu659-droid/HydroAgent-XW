@@ -25,12 +25,22 @@ def load_testset() -> List[Dict[str, Any]]:
 
 
 def has_required_response_shape(result: Dict[str, Any]) -> bool:
+    safety = result.get("safety")
+    metadata = result.get("metadata")
+
     return (
         isinstance(result, dict)
         and isinstance(result.get("intent"), str)
         and isinstance(result.get("answer"), str)
         and isinstance(result.get("sources"), list)
         and isinstance(result.get("debug"), dict)
+        and isinstance(safety, dict)
+        and isinstance(safety.get("allowed"), bool)
+        and isinstance(safety.get("risk_level"), str)
+        and isinstance(safety.get("action"), str)
+        and isinstance(metadata, dict)
+        and isinstance(metadata.get("request_id"), str)
+        and isinstance(metadata.get("latency_ms"), (int, float))
     )
 
 

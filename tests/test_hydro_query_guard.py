@@ -26,3 +26,6 @@ def test_hydro_agent_refuses_sensitive_query_before_retrieval():
     assert "无法处理" in result["answer"]
     assert result["sources"] == []
     assert result["debug"]["safety"]["allowed"] is False
+    assert result["safety"]["allowed"] is False
+    assert result["metadata"]["request_id"]
+    assert result["metadata"]["latency_ms"] >= 0
