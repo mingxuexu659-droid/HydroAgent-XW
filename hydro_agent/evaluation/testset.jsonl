@@ -9,3 +9,5 @@
 {"id": "category_001", "query": "新吴区实时数据中有哪些字段可以用于水质分析？", "expected_intent": "timeseries_data", "expected_source_type": "field_categories"}
 {"id": "category_002", "query": "哪些字段可以用于设备异常检测？", "expected_intent": "timeseries_data", "expected_source_type": "field_categories"}
 {"id": "category_003", "query": "哪些字段可以用于时序分析？", "expected_intent": "timeseries_data", "expected_source_type": "field_categories"}
+{"id": "plan_001", "query": "请基于新吴区实时数据字段，生成设备异常检测方案。", "expected_intent": "timeseries_data", "expected_source_type": "field_categories"}
+{"id": "plan_002", "query": "请基于新吴区实时数据字段，生成水质异常分析方案。", "expected_intent": "timeseries_data", "expected_source_type": "field_categories"}
