@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
+from hydro_agent.security.query_guard import check_query_safety
+
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = BASE_DIR / "data_processed"
@@ -17,6 +19,20 @@ DATA_KEYWORDS = {"实时", "数据", "水位", "闸站", "泵站", "字段", "�
 
 
 def answer_hydro_query(query: str) -> Dict[str, Any]:
+    safety = check_query_safety(query)
+    if not safety["allowed"]:
+        return {
+            "intent": "security_refusal",
+            "answer": (
+                "无法处理该请求：问题可能涉及个人隐私、越权访问、原始数据导出"
+                "或提示词注入。请改为查询水务报告、字段含义、表结构或聚合分析方案。"
+            ),
+            "sources": [],
+            "debug": {
+                "safety": safety
+            }
+        }
+
     intent = classify_intent(query)
 
     if intent == "timeseries_data":
