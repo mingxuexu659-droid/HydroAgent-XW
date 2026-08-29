@@ -4,6 +4,8 @@ This first version avoids LLM calls so the local API can work without an API key
 """
 import csv
 import json
+import time
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -18,10 +20,27 @@ REPORT_KEYWORDS = {"报告", "整治", "目标", "工程", "河道", "水环境"
 DATA_KEYWORDS = {"实时", "数据", "水位", "闸站", "泵站", "字段", "表", "设备", "监测", "运行"}
 
 
+def finalize_response(
+    result: Dict[str, Any],
+    safety: Dict[str, Any],
+    started_at: float,
+    request_id: str,
+) -> Dict[str, Any]:
+    result["safety"] = safety
+    result["metadata"] = {
+        "request_id": request_id,
+        "latency_ms": round((time.perf_counter() - started_at) * 1000, 2),
+    }
+    return result
+
+
 def answer_hydro_query(query: str) -> Dict[str, Any]:
+    started_at = time.perf_counter()
+    request_id = str(uuid.uuid4())
     safety = check_query_safety(query)
+
     if not safety["allowed"]:
-        return {
+        return finalize_response({
             "intent": "security_refusal",
             "answer": (
                 "无法处理该请求：问题可能涉及个人隐私、越权访问、原始数据导出"
@@ -31,33 +50,33 @@ def answer_hydro_query(query: str) -> Dict[str, Any]:
             "debug": {
                 "safety": safety
             }
-        }
+        }, safety, started_at, request_id)
 
     intent = classify_intent(query)
 
     if intent == "timeseries_data":
         if "水质" in query or "异常检测" in query or "时序分析" in query or "字段分类" in query:
-            return answer_field_categories(query)
+            return finalize_response(answer_field_categories(query), safety, started_at, request_id)
 
         if any(field in query for field in
                ["device_value", "device_status", "create_time", "device_id", "type_name", "type_id"]):
-            return answer_specific_field(query)
+            return finalize_response(answer_specific_field(query), safety, started_at, request_id)
 
         if "可以做哪些" in query or "能做哪些" in query or "分析方向" in query or "水务分析" in query:
-            return answer_analysis_capabilities()
+            return finalize_response(answer_analysis_capabilities(), safety, started_at, request_id)
 
         if "干什么" in query or "用途" in query or "作用" in query:
-            return answer_table_explanation(query)
+            return finalize_response(answer_table_explanation(query), safety, started_at, request_id)
 
         if "哪些表" in query or "多少张表" in query or "数据表概览" in query:
-            return answer_table_overview()
+            return finalize_response(answer_table_overview(), safety, started_at, request_id)
 
         if "字段" in query or "含义" in query or "数据表" in query:
-            return answer_field_dictionary()
+            return finalize_response(answer_field_dictionary(), safety, started_at, request_id)
 
-        return answer_from_csv()
+        return finalize_response(answer_from_csv(), safety, started_at, request_id)
 
-    return answer_from_report(query)
+    return finalize_response(answer_from_report(query), safety, started_at, request_id)
 
 
 def classify_intent(query: str) -> str:
