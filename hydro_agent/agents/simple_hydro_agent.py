@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List
 
+from hydro_agent.analysis.anomaly_rule_loader import load_anomaly_rules
 from hydro_agent.analysis.report_builder import build_analysis_report
 from hydro_agent.analysis.timeseries_analyzer import analyze_realtime_csv
 from hydro_agent.security.query_guard import check_query_safety
@@ -16,6 +17,7 @@ from hydro_agent.security.query_guard import check_query_safety
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = BASE_DIR / "data_processed"
+CONFIG_DIR = BASE_DIR / "config"
 REPORT_FILE = PROCESSED_DIR / "reports.jsonl"
 
 REPORT_KEYWORDS = {"报告", "整治", "目标", "工程", "河道", "水环境", "现状", "问题", "措施", "方案"}
@@ -116,7 +118,7 @@ def should_use_analysis_report(query: str) -> bool:
 
 
 def answer_analysis_report(query: str) -> Dict[str, Any]:
-    analysis = analyze_realtime_csv(PROCESSED_DIR)
+    analysis = analyze_realtime_csv(PROCESSED_DIR, anomaly_rules=load_anomaly_rules(CONFIG_DIR))
 
     if analysis["row_count"] == 0:
         return {
@@ -181,7 +183,7 @@ def format_analysis_report(report: Dict[str, Any]) -> str:
 
 
 def answer_realtime_analysis(query: str) -> Dict[str, Any]:
-    analysis = analyze_realtime_csv(PROCESSED_DIR)
+    analysis = analyze_realtime_csv(PROCESSED_DIR, anomaly_rules=load_anomaly_rules(CONFIG_DIR))
 
     if analysis["row_count"] == 0:
         return {

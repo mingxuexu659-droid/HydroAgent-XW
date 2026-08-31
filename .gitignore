@@ -21,6 +21,7 @@ env/
 !.env.example
 spatial_analysis_system/config.yaml
 config/local_settings.py
+config/hydro_anomaly_rules.local.json
 
 # Generated GIS data, task state, and user-provided inputs
 /downloaded_data/

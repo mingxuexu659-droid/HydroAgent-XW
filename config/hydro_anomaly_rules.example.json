@@ -1,0 +1,28 @@
+{
+  "rules": [
+    {
+      "id": "device_status_allowed",
+      "type": "allowed_values",
+      "field": "device_status",
+      "allowed_values": ["正常", "运行", "在线", "ok", "normal"],
+      "severity": "medium"
+    },
+    {
+      "id": "device_value_high",
+      "type": "numeric_threshold",
+      "field": "device_value",
+      "operator": ">",
+      "threshold": 100,
+      "severity": "high"
+    },
+    {
+      "id": "consecutive_device_fault",
+      "type": "consecutive_same_value",
+      "field": "device_status",
+      "value": "故障",
+      "min_count": 2,
+      "group_by": "device_id",
+      "severity": "critical"
+    }
+  ]
+}
