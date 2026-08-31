@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List
 
+from hydro_agent.analysis.timeseries_analyzer import analyze_realtime_csv
 from hydro_agent.security.query_guard import check_query_safety
 
 
@@ -55,6 +56,9 @@ def answer_hydro_query(query: str) -> Dict[str, Any]:
     intent = classify_intent(query)
 
     if intent == "timeseries_data":
+        if should_use_realtime_analysis(query):
+            return finalize_response(answer_realtime_analysis(query), safety, started_at, request_id)
+
         if "水质" in query or "异常检测" in query or "时序分析" in query or "字段分类" in query:
             return finalize_response(answer_field_categories(query), safety, started_at, request_id)
 
@@ -85,6 +89,86 @@ def classify_intent(query: str) -> str:
     if data_score > report_score:
         return "timeseries_data"
     return "document_rag"
+
+
+def should_use_realtime_analysis(query: str) -> bool:
+    keywords = {
+        "数据画像",
+        "统计概览",
+        "实时统计",
+        "数据统计",
+        "异常数据",
+        "异常候选",
+        "实际异常",
+        "异常记录",
+    }
+    return any(keyword in query for keyword in keywords)
+
+
+def answer_realtime_analysis(query: str) -> Dict[str, Any]:
+    analysis = analyze_realtime_csv(PROCESSED_DIR)
+
+    if analysis["row_count"] == 0:
+        return {
+            "intent": "timeseries_data",
+            "answer": "我还没有在 data_processed 目录中找到可分析的实时数据 CSV。",
+            "sources": [],
+            "debug": {"analysis": analysis}
+        }
+
+    numeric_field_names = list(analysis["numeric_fields"].keys())
+    status_field_names = list(analysis["status_fields"].keys())
+    anomaly_count = len(analysis["anomaly_candidates"])
+
+    lines = [
+        f"我读取了 {analysis['file']}，共 {analysis['row_count']} 行、{analysis['column_count']} 个字段。",
+        f"识别到 {len(numeric_field_names)} 个数值字段、{len(status_field_names)} 个状态字段、{len(analysis['time_fields'])} 个时间字段。",
+        f"当前发现 {anomaly_count} 条异常候选记录。"
+    ]
+
+    if numeric_field_names:
+        top_numeric_fields = []
+        for field_name in numeric_field_names[:5]:
+            stat = analysis["numeric_fields"][field_name]
+            top_numeric_fields.append(
+                f"{field_name}: min={stat['min']}, max={stat['max']}, avg={stat['avg']}"
+            )
+        lines.append("数值字段概览：" + "；".join(top_numeric_fields))
+
+    if status_field_names:
+        status_parts = []
+        for field_name in status_field_names[:3]:
+            counts = analysis["status_fields"][field_name]
+            status_parts.append(
+                f"{field_name}: " + "、".join(f"{key}={value}" for key, value in counts.items())
+            )
+        lines.append("状态字段分布：" + "；".join(status_parts))
+
+    if anomaly_count:
+        candidate_lines = []
+        for candidate in analysis["anomaly_candidates"][:5]:
+            candidate_lines.append(
+                f"第 {candidate['row_index']} 行 {candidate['field']}={candidate['value']}，原因：{candidate['reason']}"
+            )
+        lines.append("异常候选示例：\n" + "\n".join(f"- {line}" for line in candidate_lines))
+
+    return {
+        "intent": "timeseries_data",
+        "answer": "\n".join(lines),
+        "sources": [{
+            "source": analysis["file"],
+            "location": "realtime_analysis",
+            "preview": (
+                f"rows={analysis['row_count']}, "
+                f"numeric_fields={len(numeric_field_names)}, "
+                f"anomaly_candidates={anomaly_count}"
+            )
+        }],
+        "debug": {
+            "analysis": analysis,
+            "query": query
+        }
+    }
 
 
 def answer_from_report(query: str) -> Dict[str, Any]:
