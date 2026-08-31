@@ -1,14 +1,17 @@
 """HydroAgent-XW asynchronous task routes."""
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from hydro_agent.schemas.tasks import (
     HydroTaskListResponse,
+    HydroTaskReportResponse,
     HydroTaskResponse,
     HydroTaskSubmitRequest,
     HydroTaskSubmitResponse,
 )
+from hydro_agent.tasks.report_artifact_store import load_report_artifact
 from hydro_agent.tasks.task_models import HydroTask
 from hydro_agent.tasks.task_runner import hydro_task_runner
 
@@ -54,6 +57,33 @@ async def get_hydro_task(task_id: str) -> HydroTaskResponse:
     if task is None:
         raise HTTPException(status_code=404, detail="Hydro task not found")
     return _task_to_response(task)
+
+
+@router.get("/tasks/{task_id}/report", response_model=HydroTaskReportResponse, summary="查询水务专题报告产物")
+async def get_hydro_task_report(task_id: str) -> HydroTaskReportResponse:
+    """Read the persisted structured report artifact for a completed HydroAgent-XW task."""
+    task = hydro_task_runner.get(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Hydro task not found")
+
+    artifact = (task.result or {}).get("report_artifact")
+    if not isinstance(artifact, dict) or not artifact.get("path"):
+        raise HTTPException(status_code=404, detail="Hydro report artifact not found")
+
+    artifact_path = Path(str(artifact["path"]))
+    if not artifact_path.exists():
+        raise HTTPException(status_code=404, detail="Hydro report artifact file not found")
+
+    payload = load_report_artifact(artifact_path)
+    report = payload.get("report")
+    if not isinstance(report, dict):
+        raise HTTPException(status_code=404, detail="Hydro report payload not found")
+
+    return HydroTaskReportResponse(
+        task_id=task.task_id,
+        artifact=artifact,
+        report=report,
+    )
 
 
 @router.post("/tasks/{task_id}/cancel", response_model=HydroTaskResponse, summary="取消水务异步分析任务")

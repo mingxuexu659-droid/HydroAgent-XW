@@ -30,3 +30,9 @@ class HydroTaskListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class HydroTaskReportResponse(BaseModel):
+    task_id: str
+    artifact: Dict[str, Any]
+    report: Dict[str, Any]

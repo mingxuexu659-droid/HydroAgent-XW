@@ -42,3 +42,7 @@ def save_report_artifact(task_id: str, result: Dict[str, Any], report_dir: Path)
         "report_title": str(report.get("title", "")),
         "risk_level": str(report.get("risk_level", "")),
     }
+
+
+def load_report_artifact(artifact_path: Path) -> Dict[str, Any]:
+    return json.loads(artifact_path.read_text(encoding="utf-8"))
