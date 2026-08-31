@@ -15,7 +15,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from api.routers import analysis, data, catalog, hydro
+from api.routers import analysis, data, catalog, hydro, hydro_tasks
 from api.websocket.task_progress import router as ws_router
 
 
@@ -73,6 +73,7 @@ app.include_router(analysis.router, prefix="/api/analysis", tags=["分析任务"
 app.include_router(data.router, prefix="/api/data", tags=["数据管理"])
 app.include_router(catalog.router, prefix="/api/catalog", tags=["数据目录"])
 app.include_router(hydro.router, prefix="/api/hydro", tags=["HydroAgent-XW"])
+app.include_router(hydro_tasks.router, prefix="/api/hydro", tags=["HydroAgent-XW Tasks"])
 app.include_router(ws_router, prefix="/ws", tags=["WebSocket"])
 
 # 静态文件服务
