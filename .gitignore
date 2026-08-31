@@ -25,10 +25,14 @@ config/local_settings.py
 # Generated GIS data, task state, and user-provided inputs
 /downloaded_data/
 /output/
+/runtime/
 /input/
 /data/training/
 /data/data_catalog.json
 /data/vector_db.json
+*.db
+*.sqlite
+*.sqlite3
 
 # JavaScript / TypeScript
 node_modules/
