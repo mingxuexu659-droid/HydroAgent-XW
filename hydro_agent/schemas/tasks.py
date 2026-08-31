@@ -23,3 +23,10 @@ class HydroTaskResponse(BaseModel):
     error_message: Optional[str] = None
     created_at: str
     updated_at: str
+
+
+class HydroTaskListResponse(BaseModel):
+    tasks: list[HydroTaskResponse]
+    total: int
+    limit: int
+    offset: int

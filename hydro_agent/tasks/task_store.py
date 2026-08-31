@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from hydro_agent.tasks.task_models import HydroTask, HydroTaskStatus
+from hydro_agent.tasks.task_models import HydroTask, HydroTaskPage, HydroTaskStatus
 
 
 class HydroTaskStore:
@@ -60,6 +60,43 @@ class HydroTaskStore:
         if row is None:
             return None
         return _row_to_task(row)
+
+    def list_tasks(
+        self,
+        status: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> HydroTaskPage:
+        normalized_status = status.upper() if status else None
+        if normalized_status is not None:
+            HydroTaskStatus(normalized_status)
+
+        where_clause = "WHERE status = ?" if normalized_status else ""
+        params = (normalized_status,) if normalized_status else ()
+
+        with self._connect() as conn:
+            total = conn.execute(
+                f"SELECT COUNT(*) FROM hydro_tasks {where_clause}",
+                params,
+            ).fetchone()[0]
+            rows = conn.execute(
+                f"""
+                SELECT task_id, query, status, user_id, result_json,
+                       error_message, created_at, updated_at
+                FROM hydro_tasks
+                {where_clause}
+                ORDER BY created_at DESC, task_id DESC
+                LIMIT ? OFFSET ?
+                """,
+                (*params, limit, offset),
+            ).fetchall()
+
+        return HydroTaskPage(
+            tasks=[_row_to_task(row) for row in rows],
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
 
     def mark_running(self, task_id: str) -> None:
         self._update_task(

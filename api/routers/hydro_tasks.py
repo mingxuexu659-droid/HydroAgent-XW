@@ -1,7 +1,10 @@
 """HydroAgent-XW asynchronous task routes."""
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from hydro_agent.schemas.tasks import (
+    HydroTaskListResponse,
     HydroTaskResponse,
     HydroTaskSubmitRequest,
     HydroTaskSubmitResponse,
@@ -22,6 +25,26 @@ async def submit_hydro_task(
     task = hydro_task_runner.submit(query=request.query, user_id=request.user_id)
     background_tasks.add_task(hydro_task_runner.run, task.task_id)
     return HydroTaskSubmitResponse(task_id=task.task_id, status=task.status.value)
+
+
+@router.get("/tasks", response_model=HydroTaskListResponse, summary="分页查询水务异步分析任务")
+async def list_hydro_tasks(
+    status: Optional[str] = Query(default=None, description="可选任务状态过滤"),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> HydroTaskListResponse:
+    """List persisted HydroAgent-XW tasks for operational visibility."""
+    try:
+        page = hydro_task_runner.list(status=status, limit=limit, offset=offset)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return HydroTaskListResponse(
+        tasks=[_task_to_response(task) for task in page.tasks],
+        total=page.total,
+        limit=page.limit,
+        offset=page.offset,
+    )
 
 
 @router.get("/tasks/{task_id}", response_model=HydroTaskResponse, summary="查询水务异步分析任务")
