@@ -122,6 +122,29 @@ class HydroTaskStore:
             error_message=error_message,
         )
 
+    def cancel_task(self, task_id: str) -> HydroTask:
+        task = self.get_task(task_id)
+        if task is None:
+            raise KeyError(f"Task not found: {task_id}")
+
+        if task.status in {
+            HydroTaskStatus.COMPLETED,
+            HydroTaskStatus.FAILED,
+            HydroTaskStatus.CANCELLED,
+        }:
+            return task
+
+        self._update_task(
+            task_id,
+            status=HydroTaskStatus.CANCELLED,
+            result=None,
+            error_message="Task cancelled by user",
+        )
+        cancelled = self.get_task(task_id)
+        if cancelled is None:
+            raise RuntimeError(f"Cancelled task could not be loaded: {task_id}")
+        return cancelled
+
     def _init_db(self) -> None:
         with self._connect() as conn:
             conn.execute(

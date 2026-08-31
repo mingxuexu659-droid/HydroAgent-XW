@@ -56,6 +56,16 @@ async def get_hydro_task(task_id: str) -> HydroTaskResponse:
     return _task_to_response(task)
 
 
+@router.post("/tasks/{task_id}/cancel", response_model=HydroTaskResponse, summary="取消水务异步分析任务")
+async def cancel_hydro_task(task_id: str) -> HydroTaskResponse:
+    """Cancel a pending or running HydroAgent-XW task."""
+    try:
+        task = hydro_task_runner.cancel(task_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Hydro task not found") from exc
+    return _task_to_response(task)
+
+
 def _task_to_response(task: HydroTask) -> HydroTaskResponse:
     return HydroTaskResponse(
         task_id=task.task_id,

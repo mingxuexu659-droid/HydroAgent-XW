@@ -3,7 +3,7 @@ from pathlib import Path
 
 from hydro_agent.schemas.hydro import HydroQueryRequest
 from hydro_agent.services.hydro_query_service import hydro_query_service
-from hydro_agent.tasks.task_models import HydroTask, HydroTaskPage
+from hydro_agent.tasks.task_models import HydroTask, HydroTaskPage, HydroTaskStatus
 from hydro_agent.tasks.task_store import HydroTaskStore
 
 
@@ -24,6 +24,8 @@ class HydroTaskRunner:
         task = self.task_store.get_task(task_id)
         if task is None:
             raise KeyError(f"Task not found: {task_id}")
+        if task.status == HydroTaskStatus.CANCELLED:
+            return
 
         try:
             self.task_store.mark_running(task_id)
@@ -39,6 +41,9 @@ class HydroTaskRunner:
 
     def list(self, status: str | None = None, limit: int = 20, offset: int = 0) -> HydroTaskPage:
         return self.task_store.list_tasks(status=status, limit=limit, offset=offset)
+
+    def cancel(self, task_id: str) -> HydroTask:
+        return self.task_store.cancel_task(task_id)
 
 
 hydro_task_runner = HydroTaskRunner(HydroTaskStore(DEFAULT_TASK_DB))

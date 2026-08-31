@@ -9,6 +9,7 @@ class HydroTaskStatus(str, Enum):
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 
 @dataclass(frozen=True)
