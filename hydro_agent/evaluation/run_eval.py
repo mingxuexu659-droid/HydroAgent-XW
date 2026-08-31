@@ -59,6 +59,9 @@ def source_type_ok(result: Dict[str, Any], expected_source_type: str) -> bool:
     if expected_source_type == "realtime_analysis":
         return any("realtime_analysis" in item.get("location", "") for item in sources)
 
+    if expected_source_type == "analysis_report":
+        return any("analysis_report" in item.get("location", "") for item in sources)
+
     if expected_source_type == "none":
         return not sources
 

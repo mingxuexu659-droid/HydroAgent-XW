@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List
 
+from hydro_agent.analysis.report_builder import build_analysis_report
 from hydro_agent.analysis.timeseries_analyzer import analyze_realtime_csv
 from hydro_agent.security.query_guard import check_query_safety
 
@@ -18,7 +19,7 @@ PROCESSED_DIR = BASE_DIR / "data_processed"
 REPORT_FILE = PROCESSED_DIR / "reports.jsonl"
 
 REPORT_KEYWORDS = {"报告", "整治", "目标", "工程", "河道", "水环境", "现状", "问题", "措施", "方案"}
-DATA_KEYWORDS = {"实时", "数据", "水位", "闸站", "泵站", "字段", "表", "设备", "监测", "运行"}
+DATA_KEYWORDS = {"实时", "数据", "水位", "闸站", "泵站", "字段", "表", "设备", "监测", "运行", "异常"}
 
 
 def finalize_response(
@@ -56,6 +57,9 @@ def answer_hydro_query(query: str) -> Dict[str, Any]:
     intent = classify_intent(query)
 
     if intent == "timeseries_data":
+        if should_use_analysis_report(query):
+            return finalize_response(answer_analysis_report(query), safety, started_at, request_id)
+
         if should_use_realtime_analysis(query):
             return finalize_response(answer_realtime_analysis(query), safety, started_at, request_id)
 
@@ -103,6 +107,77 @@ def should_use_realtime_analysis(query: str) -> bool:
         "异常记录",
     }
     return any(keyword in query for keyword in keywords)
+
+
+def should_use_analysis_report(query: str) -> bool:
+    report_keywords = {"专题报告", "分析报告", "风险报告", "风险分析报告"}
+    data_keywords = {"实时数据", "设备异常", "水质", "水务风险"}
+    return any(keyword in query for keyword in report_keywords) and any(keyword in query for keyword in data_keywords)
+
+
+def answer_analysis_report(query: str) -> Dict[str, Any]:
+    analysis = analyze_realtime_csv(PROCESSED_DIR)
+
+    if analysis["row_count"] == 0:
+        return {
+            "intent": "timeseries_data",
+            "answer": "我还没有在 data_processed 目录中找到可生成专题报告的实时数据 CSV。",
+            "sources": [],
+            "debug": {"analysis": analysis}
+        }
+
+    topic = infer_report_topic(query)
+    report = build_analysis_report(analysis, topic=topic)
+    answer = format_analysis_report(report)
+
+    return {
+        "intent": "timeseries_data",
+        "answer": answer,
+        "sources": [{
+            "source": analysis["file"],
+            "location": "analysis_report",
+            "preview": (
+                f"risk_level={report['risk_level']}, "
+                f"findings={len(report['key_findings'])}, "
+                f"evidence={len(report['evidence'])}"
+            )
+        }],
+        "debug": {
+            "analysis": analysis,
+            "report": report,
+            "query": query
+        }
+    }
+
+
+def infer_report_topic(query: str) -> str:
+    if "设备" in query or "故障" in query:
+        return "device_anomaly"
+    if "水质" in query:
+        return "water_quality"
+    return "realtime_profile"
+
+
+def format_analysis_report(report: Dict[str, Any]) -> str:
+    lines = [
+        report["title"],
+        f"风险等级：{report['risk_level']}",
+        f"分析摘要：{report['summary']}",
+        "关键发现：",
+    ]
+    lines.extend(f"- {finding}" for finding in report["key_findings"])
+    lines.append("处置建议：")
+    lines.extend(f"- {action}" for action in report["recommended_actions"])
+
+    if report["evidence"]:
+        lines.append("证据样例：")
+        for item in report["evidence"]:
+            rule_part = f"，规则：{item['rule_id']}" if item.get("rule_id") else ""
+            lines.append(
+                f"- 第 {item['row_index']} 行 {item['field']}={item['value']}{rule_part}，等级：{item['severity']}"
+            )
+
+    return "\n".join(lines)
 
 
 def answer_realtime_analysis(query: str) -> Dict[str, Any]:
