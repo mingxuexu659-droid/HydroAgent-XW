@@ -119,10 +119,12 @@ def answer_realtime_analysis(query: str) -> Dict[str, Any]:
     numeric_field_names = list(analysis["numeric_fields"].keys())
     status_field_names = list(analysis["status_fields"].keys())
     anomaly_count = len(analysis["anomaly_candidates"])
+    rule_count = len(analysis.get("anomaly_rules", []))
 
     lines = [
         f"我读取了 {analysis['file']}，共 {analysis['row_count']} 行、{analysis['column_count']} 个字段。",
         f"识别到 {len(numeric_field_names)} 个数值字段、{len(status_field_names)} 个状态字段、{len(analysis['time_fields'])} 个时间字段。",
+        f"已应用 {rule_count} 条异常规则，并结合 IQR 数值离群检测。",
         f"当前发现 {anomaly_count} 条异常候选记录。"
     ]
 
@@ -147,8 +149,9 @@ def answer_realtime_analysis(query: str) -> Dict[str, Any]:
     if anomaly_count:
         candidate_lines = []
         for candidate in analysis["anomaly_candidates"][:5]:
+            rule_part = f"，规则：{candidate['rule_id']}" if candidate.get("rule_id") else ""
             candidate_lines.append(
-                f"第 {candidate['row_index']} 行 {candidate['field']}={candidate['value']}，原因：{candidate['reason']}"
+                f"第 {candidate['row_index']} 行 {candidate['field']}={candidate['value']}{rule_part}，原因：{candidate['reason']}"
             )
         lines.append("异常候选示例：\n" + "\n".join(f"- {line}" for line in candidate_lines))
 
@@ -161,6 +164,7 @@ def answer_realtime_analysis(query: str) -> Dict[str, Any]:
             "preview": (
                 f"rows={analysis['row_count']}, "
                 f"numeric_fields={len(numeric_field_names)}, "
+                f"rules={rule_count}, "
                 f"anomaly_candidates={anomaly_count}"
             )
         }],

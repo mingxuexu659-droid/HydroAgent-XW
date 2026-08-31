@@ -3,7 +3,9 @@ import csv
 import math
 from pathlib import Path
 from statistics import mean
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from hydro_agent.analysis.anomaly_rules import evaluate_anomaly_rules
 
 
 NORMAL_STATUS_VALUES = {
@@ -21,7 +23,11 @@ TIME_FIELD_KEYWORDS = ("time", "date", "时间", "日期")
 STATUS_FIELD_KEYWORDS = ("status", "state", "状态")
 
 
-def analyze_realtime_csv(processed_dir: Path, max_anomaly_candidates: int = 20) -> Dict[str, Any]:
+def analyze_realtime_csv(
+    processed_dir: Path,
+    max_anomaly_candidates: int = 20,
+    anomaly_rules: Optional[Iterable[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
     file_path = find_realtime_data_file(processed_dir)
     if file_path is None:
         return {
@@ -45,8 +51,11 @@ def analyze_realtime_csv(processed_dir: Path, max_anomaly_candidates: int = 20) 
     status_fields = summarize_status_fields(rows, columns)
     time_fields = detect_time_fields(columns)
 
-    anomaly_candidates = []
-    anomaly_candidates.extend(detect_status_anomalies(rows, status_fields.keys(), max_anomaly_candidates))
+    rules = list(anomaly_rules) if anomaly_rules is not None else build_default_status_rules(status_fields.keys())
+    anomaly_candidates = evaluate_anomaly_rules(rows, rules, max_anomaly_candidates)
+    remaining_limit = max_anomaly_candidates - len(anomaly_candidates)
+    if remaining_limit > 0:
+        anomaly_candidates.extend(detect_status_anomalies(rows, status_fields.keys(), remaining_limit))
     remaining_limit = max_anomaly_candidates - len(anomaly_candidates)
     if remaining_limit > 0:
         anomaly_candidates.extend(detect_numeric_outliers(numeric_values, remaining_limit))
@@ -59,8 +68,22 @@ def analyze_realtime_csv(processed_dir: Path, max_anomaly_candidates: int = 20) 
         "numeric_fields": numeric_fields,
         "status_fields": status_fields,
         "time_fields": time_fields,
+        "anomaly_rules": rules,
         "anomaly_candidates": anomaly_candidates,
     }
+
+
+def build_default_status_rules(status_columns) -> List[Dict[str, Any]]:
+    return [
+        {
+            "id": f"{column}_allowed_values",
+            "type": "allowed_values",
+            "field": column,
+            "allowed_values": sorted(NORMAL_STATUS_VALUES),
+            "severity": "medium",
+        }
+        for column in status_columns
+    ]
 
 
 def find_realtime_data_file(processed_dir: Path) -> Optional[Path]:

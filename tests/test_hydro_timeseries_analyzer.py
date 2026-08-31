@@ -41,6 +41,8 @@ def test_answer_hydro_query_uses_realtime_analysis_for_profile_queries(tmp_path,
     result = simple_hydro_agent.answer_hydro_query("请分析实时数据中的异常候选记录")
 
     assert result["intent"] == "timeseries_data"
+    assert "已应用" in result["answer"]
     assert "异常候选" in result["answer"]
     assert result["sources"][0]["location"] == "realtime_analysis"
     assert result["debug"]["analysis"]["row_count"] == 4
+    assert result["debug"]["analysis"]["anomaly_rules"]
